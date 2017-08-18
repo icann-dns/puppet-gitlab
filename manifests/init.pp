@@ -367,6 +367,7 @@ class gitlab (
   $gitlab_workhorse = undef,
   $user = undef,
   $web_server = undef,
+  $enable_backup_cron = false,
   $custom_hooks = {},
 ) inherits ::gitlab::params {
 
@@ -427,6 +428,7 @@ class gitlab (
   if $web_server { validate_hash($web_server) }
   if $high_availability { validate_hash($high_availability) }
   if $manage_accounts { validate_hash($manage_accounts) }
+  validate_bool($enable_backup_cron)
   validate_hash($custom_hooks)
 
   class { '::gitlab::install': } ->
