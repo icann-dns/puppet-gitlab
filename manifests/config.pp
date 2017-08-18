@@ -67,6 +67,7 @@ class gitlab::config {
   $gitlab_workhorse = $::gitlab::gitlab_workhorse
   $user = $::gitlab::user
   $web_server = $::gitlab::web_server
+  $enable_backup_cron = $::gitlab::enable_backup_cron
 
   # replicate $nginx to $mattermost_nginx if $mattermost_nginx_eq_nginx true
   if $mattermost_nginx_eq_nginx {
@@ -164,6 +165,14 @@ class gitlab::config {
       owner   => 'root',
       group   => 'root',
       mode    => '0644',
+    }
+  }
+
+  if $enable_backup_cron {
+    cron {'gitlab backup':
+      command => '/opt/gitlab/bin/gitlab-rake gitlab:backup:create CRON=1',
+      hour    => 2,
+      minute  => 0,
     }
   }
 }
