@@ -1,14 +1,16 @@
 # @summary This module installs and configures Gitlab CI Runners.
 # @param conf_file path to the config file
 # @param url the url to the gitlab server
+# @param concurrent override the default number of concurrent job
 # @param runners the hash of runners
 #
 class gitlab::cirunner (
   String               $conf_file  = '/etc/gitlab-runner/config.toml',
   String               $url        = 'https://gitlab.com',
-  Hash[String, String] $runners = {},
+  Optional[Integer[1]] $concurrent = undef,
+  Hash[String, String] $runners    = {},
 ) {
-  $concurrent = $runners.size
+  $_concurrent = pick($concurrent, $runners.size)
   $package_name = 'gitlab-runner'
   ensure_packages([$package_name])
 
@@ -27,7 +29,7 @@ class gitlab::cirunner (
   }
   file_line { 'gitlab-runner-concurrent':
     path   => $conf_file,
-    line   => "concurrent = ${concurrent}",
+    line   => "concurrent = ${_concurrent}",
     match  => '^concurrent = \d+',
     notify => Exec['gitlab-runner-restart'],
   }
