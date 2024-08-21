@@ -8,7 +8,7 @@ class gitlab::cirunner (
   String               $conf_file  = '/etc/gitlab-runner/config.toml',
   String               $url        = 'https://gitlab.com',
   Optional[Integer[1]] $concurrent = undef,
-  Hash[String, String] $runners    = {},
+  Hash                 $runners    = {},
 ) {
   $_concurrent = pick($concurrent, $runners.size)
   $package_name = 'gitlab-runner'
@@ -19,12 +19,21 @@ class gitlab::cirunner (
     refreshonly => true,
     require     => Package[$package_name],
   }
-  $runners.each |$name, $token| {
-    $command = "/usr/bin/gitlab-ci-multi-runner register -n --executor shell --token ${token} --url ${url}"
+  $runners.each |$name, $config| {
+    $command = "/usr/bin/gitlab-ci-multi-runner register -n --executor shell --token ${config['token']} --url ${url}"
     exec { "Register_runner ${name}":
       command => $command,
-      unless  => "/bin/grep ${token} ${conf_file}",
+      unless  => "/bin/grep ${config['token']} ${conf_file}",
       require => Package[$package_name],
+    }
+    if 'limit' in $config {
+      file_line { "gitlab-runner-limit-${name}":
+        path    => $conf_file,
+        line    => "  limit = ${config['limit']}",
+        after   => "^.+${config['token']}",
+        require => Exec["Register_runner ${name}"],
+        notify  => Exec['gitlab-runner-restart'],
+      }
     }
   }
   file_line { 'gitlab-runner-concurrent':
